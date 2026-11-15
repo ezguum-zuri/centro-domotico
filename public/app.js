@@ -35,7 +35,7 @@ document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
   tab = b.dataset.tab;
   document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('active', x === b));
   document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x.id === 'tab-' + tab));
-  if (tab === 'ajustes') loadConfig();
+  if (tab === 'ajustes') { $('#scanRes').innerHTML = ''; loadConfig(); } // la búsqueda de enchufes se limpia al volver
   if (tab === 'energia') loadHistory();
   if (tab === 'consumo') loadHouse();
   render();

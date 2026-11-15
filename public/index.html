@@ -10,7 +10,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.svg">
 <title>Casa · Centro de control</title>
-<link rel="stylesheet" href="style.css?v=7">
+<link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
 <header class="top">
@@ -142,7 +142,7 @@
         <label>Nombre <input id="pName" placeholder="Lavadora"></label>
         <label>IP o nombre del enchufe <input id="pIp" placeholder="se rellena con «Buscar enchufes»" autocapitalize="off" autocorrect="off"></label>
         <div class="grid2">
-          <label>Icono <input id="pIcon" placeholder="🧺" maxlength="4"></label>
+          <label>Icono (vacío = automático) <input id="pIcon" placeholder="🧺" maxlength="4"></label>
           <label>Duración típica de uso (h) <input id="pHours" type="number" step="0.5" value="2"></label>
         </div>
         <label>Modelo
@@ -185,6 +185,6 @@
 </nav>
 
 <div id="toast" class="toast"></div>
-<script src="app.js?v=7"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>

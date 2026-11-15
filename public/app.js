@@ -16,6 +16,38 @@ const num = (v, d = 1) => v == null ? '—' : Number(v).toLocaleString('es-ES', 
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const ICON_BULB = '<svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3z"/></svg>';
 
+// Icono automático según el nombre (el mismo criterio que el servidor)
+const AUTO_ICONS = [
+  [/lavavajillas|friegaplatos|lavaplatos/, '🍽️'],
+  [/lavadora/, '🧺'],
+  [/secadora/, '🌀'],
+  [/nevera|frigo|congelador/, '🧊'],
+  [/cafe/, '☕'],
+  [/microondas|horno|vitro|freidora|robot de cocina|thermomix/, '🍲'],
+  [/hervidor|tetera/, '🫖'],
+  [/proyector/, '📽️'],
+  [/tele|tv\b|television/, '📺'],
+  [/consola|playstation|xbox|nintendo|switch/, '🎮'],
+  [/ordenador|portatil|pc\b|mac\b|imac|monitor|pantalla/, '💻'],
+  [/impresora/, '🖨️'],
+  [/router|wifi|fibra/, '📶'],
+  [/altavoz|musica|equipo|sonos|homepod/, '🔊'],
+  [/aire|acondicionado|split|ventilador/, '❄️'],
+  [/calefactor|radiador|estufa|calefaccion|brasero/, '🔥'],
+  [/deshumidificador|humidificador/, '💧'],
+  [/termo|calentador|caldera/, '🚿'],
+  [/robot|aspirador/, '🤖'],
+  [/lampara|luz|flexo|luces/, '💡'],
+  [/arbol|navidad|belen/, '🎄'],
+  [/cargador|coche|patinete|bici/, '🔋'],
+  [/plancha/, '👕'],
+  [/acuario|pecera/, '🐠'],
+  [/cinta|bicicleta estatica|gimnasio/, '🏃'],
+  [/secador|pelo/, '💇']
+];
+const normTxt = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+function autoIcon(name) { const n = normTxt(name); const m = AUTO_ICONS.find(([re]) => re.test(n)); return m ? m[1] : '🔌'; }
+
 let S = null, tab = 'inicio', busy = false, climaSel = 0;
 
 async function api(path, data) {
@@ -371,13 +403,15 @@ $('#tSave').onclick = () => act('config/tariff', {
   mode: $('#tMode').value, fixedPrice: +$('#tFixed').value,
   periods: { punta: +$('#tPunta').value, llano: +$('#tLlano').value, valle: +$('#tValle').value }
 }, 'Tarifa guardada');
+// Mientras se escribe el nombre, el hueco del icono enseña el que se pondrá solo
+$('#pName').oninput = () => { $('#pIcon').placeholder = autoIcon($('#pName').value); };
 $('#pSave').onclick = async () => {
   await act('config/plug', {
-    id: $('#pId').value || undefined, name: $('#pName').value, ip: $('#pIp').value, icon: $('#pIcon').value,
+    id: $('#pId').value || undefined, name: $('#pName').value, ip: $('#pIp').value, icon: $('#pIcon').value.trim() || autoIcon($('#pName').value),
     cycleHours: $('#pHours').value, type: $('#pType').value, protect: $('#pProtect').checked, detectCycles: $('#pCycles').checked,
     deviceId: $('#pDev').value || undefined
   }, 'Enchufe guardado');
-  ['#pId', '#pDev', '#pName', '#pIp', '#pIcon'].forEach(s => $(s).value = ''); $('#scanRes').innerHTML = ''; $('#pProtect').checked = $('#pCycles').checked = false; loadConfig();
+  ['#pId', '#pDev', '#pName', '#pIp', '#pIcon'].forEach(s => $(s).value = ''); $('#scanRes').innerHTML = ''; $('#pProtect').checked = $('#pCycles').checked = false; $('#pIcon').placeholder = '🧺'; loadConfig();
 };
 // Buscar enchufes Shelly en la red
 let cfgCache = null;

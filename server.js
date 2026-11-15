@@ -25,6 +25,38 @@ function rawBody(req, max = 20e6) {
 function body(req) {
   return new Promise(ok => { let d = ''; req.on('data', c => d += c); req.on('end', () => { try { ok(JSON.parse(d || '{}')); } catch { ok({}); } }); });
 }
+// Icono automático según el nombre del aparato (si no se elige uno)
+const AUTO_ICONS = [
+  [/lavavajillas|friegaplatos|lavaplatos/, '🍽️'],
+  [/lavadora/, '🧺'],
+  [/secadora/, '🌀'],
+  [/nevera|frigo|congelador/, '🧊'],
+  [/cafe/, '☕'],
+  [/microondas|horno|vitro|freidora|robot de cocina|thermomix/, '🍲'],
+  [/hervidor|tetera/, '🫖'],
+  [/proyector/, '📽️'],
+  [/tele|tv\b|television/, '📺'],
+  [/consola|playstation|xbox|nintendo|switch/, '🎮'],
+  [/ordenador|portatil|pc\b|mac\b|imac|monitor|pantalla/, '💻'],
+  [/impresora/, '🖨️'],
+  [/router|wifi|fibra/, '📶'],
+  [/altavoz|musica|equipo|sonos|homepod/, '🔊'],
+  [/aire|acondicionado|split|ventilador/, '❄️'],
+  [/calefactor|radiador|estufa|calefaccion|brasero/, '🔥'],
+  [/deshumidificador|humidificador/, '💧'],
+  [/termo|calentador|caldera/, '🚿'],
+  [/robot|aspirador/, '🤖'],
+  [/lampara|luz|flexo|luces/, '💡'],
+  [/arbol|navidad|belen/, '🎄'],
+  [/cargador|coche|patinete|bici/, '🔋'],
+  [/plancha/, '👕'],
+  [/acuario|pecera/, '🐠'],
+  [/cinta|bicicleta estatica|gimnasio/, '🏃'],
+  [/secador|pelo/, '💇']
+];
+const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+function autoIcon(name) { const n = norm(name); const m = AUTO_ICONS.find(([re]) => re.test(n)); return m ? m[1] : '🔌'; }
+
 const slug = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 async function fullState() {
@@ -109,7 +141,7 @@ const routes = {
     if (!b.name || !b.ip) throw new Error('Falta nombre o IP');
     const id = b.id || slug(b.name);
     const p = {
-      id, name: b.name, ip: b.ip.trim(), type: b.type === 'pm' ? 'pm' : 'switch', icon: b.icon || '🔌',
+      id, name: b.name, ip: b.ip.trim(), type: b.type === 'pm' ? 'pm' : 'switch', icon: (b.icon && b.icon.trim()) || autoIcon(b.name),
       cycleHours: Number(b.cycleHours) || 1, protect: !!b.protect,
       startW: Number(b.startW) || 15, stopW: Number(b.stopW) || 4, stopMinutes: Number(b.stopMinutes) || 5,
       detectCycles: !!b.detectCycles,

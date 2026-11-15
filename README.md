@@ -20,64 +20,72 @@ El programa se instala en **un ordenador de tu casa que esté siempre encendido*
 
 | Si tienes… | Dónde instalarlo |
 |---|---|
-| Un **PC con Windows** | En el PC → [Instalación en Windows](#-windows) |
-| Un **Mac** | En el Mac → [Instalación en Mac](#-mac) |
-| **Solo iPhone / iPad** | Un iPhone o iPad no puede tenerlo funcionando siempre. Necesitas una **Raspberry Pi** (unos 60–80 €, gasta 3 W) → [Raspberry Pi](#-raspberry-pi) |
+| Un **PC con Windows** | En el PC |
+| Un **Mac** | En el Mac |
+| **Solo iPhone / iPad** | Un iPhone o iPad no puede tenerlo funcionando siempre. Necesitas una **Raspberry Pi** (unos 60–80 €, gasta 3 W) |
 
 > Tus datos (claves de Hue y tado, consumos) se guardan **solo en tu ordenador**, en `config.json` y la carpeta `data/`. No se envían a ningún sitio.
 
 ---
 
-## 1. Descargar el programa
+## ⭐ Instalación fácil (recomendada)
 
-1. En esta página de GitHub, pulsa el botón verde **Code → Download ZIP**.
-2. Descomprime el ZIP y **mueve la carpeta** a un sitio fijo:
-   - **Windows:** por ejemplo `C:\centro-domotico`
-   - **Mac:** tu carpeta de usuario (Finder → Ir → Inicio). No la dejes en Descargas, Escritorio ni Documentos.
+El instalador lo hace todo solo: instala Node.js si falta, copia el programa a una carpeta fija, abre el cortafuegos para el móvil, lo deja arrancando solo al encender, evita que el ordenador se duerma (te lo pregunta) y al final **te dice la dirección que tienes que escribir en el iPhone**.
 
-## 2. Instalar Node.js
+### 🪟 Windows
 
-Descárgalo de **https://nodejs.org** → versión **LTS** → instalar con todas las opciones por defecto.
-(Es gratis y de código abierto. Solo hace falta una vez.)
+**Opción 1 — una línea (lo más fácil):**
+1. Pulsa la tecla **Windows**, escribe `powershell` y abre **Windows PowerShell**.
+2. Copia esta línea, pégala (clic derecho) y pulsa **Enter**:
+   ```
+   irm https://raw.githubusercontent.com/ezguum-zuri/centro-domotico/main/arranque/instalar-windows.ps1 | iex
+   ```
+3. Cuando Windows pregunte *«¿Quieres permitir que esta aplicación haga cambios?»*, pulsa **Sí** (saldrá 1 o 2 veces).
 
----
+**Opción 2 — con el ZIP:**
+1. En GitHub pulsa **Code → Download ZIP** y descomprímelo (clic derecho → *Extraer todo*).
+2. Dentro de la carpeta, doble clic en **`INSTALAR-Windows.bat`**.
+   Si sale *«Windows protegió su PC»*: **Más información → Ejecutar de todas formas**.
 
-## 🪟 Windows
+### 🍎 Mac
 
-1. Abre la carpeta del programa, escribe `cmd` en la barra de dirección del Explorador y pulsa Enter.
-2. En la ventana negra escribe: `node server.js`
-3. **Muy importante la primera vez:** Windows preguntará si permites a Node.js acceder a la red → marca **Redes privadas** → **Permitir**. (Si no, el móvil no podrá conectarse.)
-4. Abre en el navegador **http://localhost:8080**. Si funciona, cierra la ventana negra.
-5. Para que arranque solo al encender el PC: entra en la carpeta **`arranque`** y haz doble clic en **`windows-instalar.bat`**.
-   - Para quitarlo: `windows-quitar.bat` · Para reiniciarlo tras actualizar: `windows-reiniciar.bat`
-6. Para que el PC no se duerma: **Configuración → Sistema → Inicio/apagado y batería → Suspender: Nunca** (al menos con el cargador conectado).
+1. Abre la app **Terminal** (Cmd + espacio, escribe *Terminal*).
+2. Pega esta línea y pulsa **Enter**:
+   ```
+   curl -fsSL https://raw.githubusercontent.com/ezguum-zuri/centro-domotico/main/instalar.sh | bash
+   ```
+3. Si te pide la **contraseña del Mac**, escríbela (no se ve al escribir) y pulsa Enter.
 
-## 🍎 Mac
+**Opción 2 — con el ZIP:** descárgalo de GitHub (**Code → Download ZIP**), ábrelo y haz doble clic en **`INSTALAR-Mac.command`**.
+Si el Mac dice que *no puede comprobar el desarrollador*: **Ajustes del Sistema → Privacidad y seguridad → Abrir igualmente** (abajo del todo), y vuelve a hacer doble clic.
 
-1. Abre la app **Terminal**, escribe `cd ` (con espacio), **arrastra la carpeta del programa** a la ventana y pulsa Enter.
-2. Escribe: `bash arranque/mac-instalar.sh` y pulsa Enter. Se abrirá el panel en el navegador.
-   - Si macOS pregunta si permites conexiones entrantes a "node" → **Permitir**.
-   - Para quitarlo: `bash arranque/mac-quitar.sh` · Para reiniciarlo: `bash arranque/mac-reiniciar.sh`
-3. Para que el Mac no se duerma enchufado: **Ajustes del Sistema → Batería → Opciones → Evitar reposo automático con el adaptador**.
+### 🍓 Raspberry Pi (para quien solo tiene iPhone / iPad)
 
-## 🍓 Raspberry Pi
+1. Prepara la Raspberry con **Raspberry Pi Imager** (sistema *Raspberry Pi OS Lite*), poniendo tu Wi-Fi, un usuario y activando SSH.
+2. Conéctate a ella por SSH (desde un ordenador, o desde el iPad con una app como *Termius*) y pega la **misma línea que en Mac**:
+   ```
+   curl -fsSL https://raw.githubusercontent.com/ezguum-zuri/centro-domotico/main/instalar.sh | bash
+   ```
 
-1. Prepara la Raspberry con **Raspberry Pi Imager** (sistema "Raspberry Pi OS Lite"), poniendo tu Wi-Fi y activando SSH.
-2. Copia la carpeta del programa a la Raspberry y, dentro de ella, ejecuta: `bash arranque/raspberry-instalar.sh`
-3. Al terminar te dirá la dirección para abrirlo desde el móvil.
+### 🔄 Actualizar a una versión nueva
+
+Ejecuta **otra vez el mismo instalador**. Descarga la versión nueva y **no toca tu configuración ni tus datos**.
+Si en el móvil sigue saliendo el diseño anterior, cierra la app y vuelve a abrirla.
 
 ---
 
 ## 📱 Abrirlo desde el iPhone / iPad
 
-Con el móvil en la **Wi-Fi de casa**, abre en Safari la dirección del ordenador:
+El instalador te dice la dirección al terminar. Con el móvil en la **Wi-Fi de casa**, ábrela en Safari, por ejemplo:
 
-- **Mac / Raspberry:** `http://NOMBRE-DEL-EQUIPO.local:8080` (el nombre sale al instalar)
-- **Windows:** `http://IP-DEL-PC:8080` (la IP la ves con `ipconfig` en `cmd`, línea "Dirección IPv4")
+- **Mac / Raspberry:** `http://NOMBRE-DEL-EQUIPO.local:8080`
+- **Windows:** `http://192.168.1.XX:8080`
 
 Luego **Compartir → Añadir a pantalla de inicio** y queda como una app.
 
 En el móvil el menú sale abajo; en el ordenador o el iPad en horizontal, como barra lateral.
+
+> En Windows, si un día el móvil deja de conectar, el router le ha cambiado la dirección al PC. Vuelve a ejecutar el instalador y te dirá la nueva (o reserva la IP del PC en el router).
 
 ---
 
@@ -101,12 +109,15 @@ En el móvil el menú sale abajo; en el ordenador o el iPad en horizontal, como 
 
 ---
 
-## 🔄 Actualizar a una versión nueva
+## 🛠️ Instalación manual (solo si el instalador falla)
 
-1. Descarga de nuevo el ZIP de GitHub.
-2. Copia **solo** `server.js` y las carpetas `lib`, `public` y `arranque` encima de las tuyas. **No borres** `config.json` ni `data/`: ahí está tu configuración.
-3. Reinicia: `windows-reiniciar.bat` (Windows) · `bash arranque/mac-reiniciar.sh` (Mac) · `sudo systemctl restart centro-domotico` (Raspberry).
-4. Si en el móvil sigue saliendo el diseño anterior, cierra la app y vuelve a abrirla.
+1. Descarga el ZIP de GitHub y mueve la carpeta a un sitio fijo (Windows: `C:\Users\TU-USUARIO\centro-domotico`; Mac: tu carpeta de usuario).
+2. Instala **Node.js LTS** desde https://nodejs.org.
+3. **Windows:** en la carpeta `arranque`, doble clic en `windows-instalar.bat`. La primera vez que Windows pregunte por Node.js, marca **Redes privadas → Permitir**.
+   **Mac:** en Terminal, `cd` + arrastra la carpeta + Enter, y luego `bash arranque/mac-instalar.sh`.
+   **Raspberry:** dentro de la carpeta, `bash arranque/raspberry-instalar.sh`.
+4. Quitar el arranque automático: `windows-quitar.bat` · `bash arranque/mac-quitar.sh` · `sudo systemctl disable --now centro-domotico`.
+5. Reiniciar: `windows-reiniciar.bat` · `bash arranque/mac-reiniciar.sh` · `sudo systemctl restart centro-domotico`.
 
 ## 🧪 Probarlo sin aparatos
 
@@ -116,4 +127,5 @@ En el móvil el menú sale abajo; en el ordenador o el iPad en horizontal, como 
 
 ### Para quien suba esto a GitHub
 
-El archivo `.gitignore` evita que se suban `config.json` y `data/`. **Nunca subas tu propia carpeta de uso diario a mano**: sube solo los archivos del programa.
+- El archivo `.gitignore` evita que se suban `config.json` y `data/`. **Nunca subas tu propia carpeta de uso diario a mano**: sube solo los archivos del programa.
+- Los instaladores descargan de `ezguum-zuri/centro-domotico` (rama `main`). Si el repositorio se llama distinto, cambia la línea `REPO=` en `instalar.sh` y `$REPO =` en `arranque/instalar-windows.ps1`, y las direcciones de este README.

@@ -10,6 +10,7 @@ const plugs = require('./lib/plugs');
 const tado = require('./lib/tado');
 const prices = require('./lib/prices');
 const house = require('./lib/house');
+const weather = require('./lib/weather');
 
 const PUB = path.join(__dirname, 'public');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png' };
@@ -46,7 +47,7 @@ async function fullState() {
   return {
     demo: !!config.get().demo,
     now: Date.now(),
-    hue: h, plugs: p, tado: tado.state(), prices: t, recs,
+    hue: h, plugs: p, tado: tado.state(), prices: t, recs, weather: weather.state(),
     summary: {
       powerNow: p.reduce((a, b) => a + (b.power || 0), 0),
       kWhToday: p.reduce((a, b) => a + b.today.kWh, 0),
@@ -60,7 +61,10 @@ const routes = {
   'GET /api/state': async () => fullState(),
   'GET /api/history': async (q) => plugs.history(Number(q.get('days')) || 14),
   'GET /api/cycles': async (q) => plugs.cyclesOf(q.get('id')),
-  'GET /api/config': async () => { const c = config.get(); return { tariff: c.tariff, plugs: c.plugs, tado: c.tado, hue: { ip: c.hue.ip, paired: !!c.hue.username }, house: c.house, offers: c.offers }; },
+  'GET /api/config': async () => { const c = config.get(); return { tariff: c.tariff, plugs: c.plugs, tado: c.tado, hue: { ip: c.hue.ip, paired: !!c.hue.username }, house: c.house, offers: c.offers, weather: c.weather || {} }; },
+
+  'POST /api/weather/search': async (q, b) => weather.search(b.q),
+  'POST /api/config/weather': async (q, b) => { weather.setPlace(b); return { ok: true }; },
 
   'GET /api/house': async () => house.summary(),
   'POST /api/house/clear': async () => house.clear(),
@@ -153,6 +157,7 @@ if (config.get().demo && !config.get().plugs.length) {
 plugs.start();
 tado.start();
 house.start();
+weather.start();
 server.listen(config.get().port, '0.0.0.0', () => {
   const nets = require('os').networkInterfaces();
   const ips = Object.values(nets).flat().filter(n => n && n.family === 'IPv4' && !n.internal).map(n => n.address);

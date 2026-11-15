@@ -1,7 +1,7 @@
 // Panel del centro de control
 // Si el navegador tiene guardada la página antigua (caché), se descarga la nueva y se recarga
-if (!document.getElementById('quickDevices') && !sessionStorage.getItem('recargado')) {
-  sessionStorage.setItem('recargado', '1');
+if ((!document.getElementById('quickDevices') || !document.getElementById('weatherCard')) && !sessionStorage.getItem('recargado2')) {
+  sessionStorage.setItem('recargado2', '1');
   fetch('/', { cache: 'reload' }).catch(() => {}).finally(() => location.replace('/?v=' + Date.now()));
   throw new Error('Página antigua en caché: recargando');
 }
@@ -35,7 +35,7 @@ document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
   tab = b.dataset.tab;
   document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('active', x === b));
   document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x.id === 'tab-' + tab));
-  if (tab === 'ajustes') { $('#scanRes').innerHTML = ''; loadConfig(); } // la búsqueda de enchufes se limpia al volver
+  if (tab === 'ajustes') { $('#scanRes').innerHTML = ''; $('#wRes').innerHTML = ''; loadConfig(); } // la búsqueda de enchufes se limpia al volver
   if (tab === 'energia') loadHistory();
   if (tab === 'consumo') loadHouse();
   render();
@@ -126,10 +126,43 @@ function gauge(w) {
   </svg>`;
 }
 
+// ---------------- Tiempo fuera de casa ----------------
+// Códigos WMO de Open-Meteo -> icono y texto
+function wx(code, day = true) {
+  const c = Number(code);
+  if (c === 0) return [day ? '☀️' : '🌙', 'Despejado'];
+  if (c === 1) return [day ? '🌤️' : '🌙', 'Casi despejado'];
+  if (c === 2) return ['⛅', 'Intervalos nubosos'];
+  if (c === 3) return ['☁️', 'Nublado'];
+  if (c === 45 || c === 48) return ['🌫️', 'Niebla'];
+  if (c >= 51 && c <= 57) return ['🌦️', 'Llovizna'];
+  if (c >= 61 && c <= 67) return ['🌧️', c >= 65 ? 'Lluvia fuerte' : 'Lluvia'];
+  if (c >= 71 && c <= 77) return ['🌨️', 'Nieve'];
+  if (c >= 80 && c <= 82) return ['🌦️', 'Chubascos'];
+  if (c === 85 || c === 86) return ['🌨️', 'Chubascos de nieve'];
+  if (c >= 95) return ['⛈️', 'Tormenta'];
+  return ['🌡️', ''];
+}
+function renderWeather() {
+  const w = S.weather || {};
+  const el = $('#weatherCard');
+  if (!w.configured) { el.innerHTML = `<div class="ph">Tiempo fuera</div><div class="muted small">Elige tu pueblo o ciudad en Ajustes para ver el tiempo.</div>`; return; }
+  if (!w.current) { el.innerHTML = `<div class="ph">Tiempo fuera · ${esc(w.name)}</div><div class="muted small">${w.error ? '⚠️ ' + esc(w.error) : 'Cargando…'}</div>`; return; }
+  const c = w.current, [ico, txt] = wx(c.code, c.isDay);
+  const dn = d => { const t = new Date(d + 'T12:00:00'); const today = new Date().toDateString() === t.toDateString(); return today ? 'Hoy' : t.toLocaleDateString('es-ES', { weekday: 'short' }).replace('.', ''); };
+  el.innerHTML = `<div class="ph">Tiempo fuera · ${esc(w.name)}</div>
+    <div class="wx-wrap"><div>
+      <div class="wx-now"><div class="wx-ico">${ico}</div><div><div class="big">${num(c.temp)}<small>°C</small></div><div class="wx-desc">${txt}</div></div></div>
+      <div class="wx-meta"><span>Sensación <b>${num(c.feels)}°</b></span><span>Humedad <b>${num(c.humidity, 0)}%</b></span><span>Viento <b>${num(c.wind, 0)} km/h</b></span></div>
+    </div>
+    <div class="wx-days">${(w.days || []).slice(0, 4).map(d => `<div>${dn(d.day)}<div class="i">${wx(d.code)[0]}</div><b>${num(d.max, 0)}°</b> / ${num(d.min, 0)}°${d.rainProb ? `<div class="r">💧 ${d.rainProb}%</div>` : ''}</div>`).join('')}</div></div>`;
+}
+
 // ---------------- Inicio ----------------
 function priceNowObj() { return S.prices.hours?.find(h => h.now); }
 function renderInicio() {
   const s = S.summary;
+  renderWeather();
   const fixed = S.prices.mode === 'fija';
 
   // Clima (un dial, con selector de estancia)
@@ -322,6 +355,7 @@ async function loadConfig() {
     $('#pHours').value = p.cycleHours; $('#pType').value = p.type; $('#pProtect').checked = !!p.protect;
     $('#pCycles').checked = p.detectCycles != null ? !!p.detectCycles : /lav|seca|friega/i.test(p.name + ' ' + p.id); $('#plugForm').open = true;
   });
+  $('#wCfg').textContent = c.weather?.name ? `Localidad: ${c.weather.name}` : 'Sin elegir';
   $('#hueCfg').textContent = c.hue.paired ? `Vinculado (${c.hue.ip})` : 'Sin vincular';
   if (c.hue.ip) $('#hueIp').value = c.hue.ip;
   const t = S?.tado;
@@ -369,6 +403,25 @@ $('#scanBtn').onclick = async () => {
   } catch (e) { toast(/JSON|Unexpected/.test(e.message) ? '⚠️ Tu servidor aún no tiene la búsqueda de enchufes (actualiza server.js y lib/)' : '⚠️ ' + e.message); }
   btn.disabled = false; btn.textContent = '🔍 Buscar enchufes en la red';
 };
+
+// Elegir localidad para el tiempo
+async function wSearch() {
+  const q = $('#wQuery').value.trim(); if (q.length < 2) return toast('Escribe al menos 2 letras');
+  $('#wRes').innerHTML = '<div class="muted small">Buscando…</div>';
+  try {
+    const list = await api('weather/search', { q });
+    $('#wRes').innerHTML = list.length ? list.map((x, i) => `<div class="item"><div class="ico">📍</div><div class="main"><div class="title">${esc(x.name)}</div><div class="sub">${esc(x.detail)}</div></div>
+      <button class="small" data-wsel="${i}">Elegir</button></div>`).join('') : '<div class="muted small">No he encontrado ese sitio.</div>';
+    document.querySelectorAll('[data-wsel]').forEach(b => b.onclick = async () => {
+      const x = list[+b.dataset.wsel];
+      await act('config/weather', { name: x.name, lat: x.lat, lon: x.lon }, `Tiempo de ${x.name}`);
+      $('#wRes').innerHTML = ''; $('#wQuery').value = ''; loadConfig();
+      setTimeout(load, 2500);
+    });
+  } catch (e) { $('#wRes').innerHTML = ''; toast('⚠️ ' + e.message); }
+}
+$('#wSearch').onclick = wSearch;
+$('#wQuery').onkeydown = e => { if (e.key === 'Enter') wSearch(); };
 
 $('#hueFind').onclick = async () => {
   try { const ips = await api('hue/discover', {}); if (ips.length) { $('#hueIp').value = ips[0]; toast('Bridge encontrado: ' + ips[0]); } else toast('No se ha encontrado ningún Bridge'); }

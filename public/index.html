@@ -10,7 +10,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.svg">
 <title>Casa · Centro de control</title>
-<link rel="stylesheet" href="style.css?v=6">
+<link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
 <header class="top">
@@ -25,6 +25,7 @@
   <!-- INICIO -->
   <section id="tab-inicio" class="tab active">
     <div class="dash">
+      <div class="panel p-weather" id="weatherCard"></div>
       <div class="panel p-clima" id="quickClima"></div>
       <div class="panel p-devices">
         <div class="ph">Dispositivos</div>
@@ -106,6 +107,13 @@
   <!-- AJUSTES -->
   <section id="tab-ajustes" class="tab">
     <div class="card">
+      <h3>Tiempo fuera de casa</h3>
+      <p class="muted small" id="wCfg"></p>
+      <div class="row"><input id="wQuery" placeholder="Escribe tu pueblo o ciudad"><button id="wSearch" class="ghost">Buscar</button></div>
+      <div id="wRes" class="list" style="margin-top:8px"></div>
+    </div>
+
+    <div class="card">
       <h3>Tarifa de la luz</h3>
       <label>Tipo de tarifa
         <select id="tMode">
@@ -177,6 +185,6 @@
 </nav>
 
 <div id="toast" class="toast"></div>
-<script src="app.js?v=6"></script>
+<script src="app.js?v=7"></script>
 </body>
 </html>

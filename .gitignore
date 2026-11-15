@@ -1,0 +1,7 @@
+# Datos y claves de CADA casa: no se suben nunca
+config.json
+data/
+*.log
+node_modules/
+.DS_Store
+Thumbs.db

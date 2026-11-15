@@ -1,0 +1,11 @@
+{
+  "name": "centro-domotico",
+  "version": "0.1.0",
+  "description": "Centro de control doméstico: Hue, tado X, enchufes Shelly y precio de la luz",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "demo": "DEMO=1 node server.js"
+  },
+  "engines": { "node": ">=18" }
+}

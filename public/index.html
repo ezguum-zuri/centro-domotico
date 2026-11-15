@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Casa">
+<meta name="theme-color" content="#0a1322">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>Casa · Centro de control</title>
+<link rel="stylesheet" href="style.css?v=5">
+</head>
+<body>
+<header class="top">
+  <div>
+    <h1>Casa</h1>
+    <div id="clock" class="muted"></div>
+  </div>
+  <div id="demoBadge" class="badge hidden">DEMO</div>
+</header>
+
+<main>
+  <!-- INICIO -->
+  <section id="tab-inicio" class="tab active">
+    <div class="dash">
+      <div class="panel p-clima" id="quickClima"></div>
+      <div class="panel p-devices">
+        <div class="ph">Dispositivos</div>
+        <div class="dev-grid" id="quickDevices"></div>
+      </div>
+      <div class="panel p-price" id="priceNow"></div>
+      <div class="panel p-power" id="powerCard"></div>
+      <div class="panel p-recs">
+        <div class="ph" id="recsTitle">Cuándo usar cada aparato</div>
+        <div id="recs" class="list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LUCES -->
+  <section id="tab-luces" class="tab">
+    <div id="hueMsg"></div>
+    <h2>Estancias</h2>
+    <div id="rooms" class="list"></div>
+    <h2>Todas las bombillas</h2>
+    <div id="lights" class="list"></div>
+  </section>
+
+  <!-- CLIMA -->
+  <section id="tab-clima" class="tab">
+    <div id="tadoMsg"></div>
+    <div id="tadoRooms" class="clima-grid"></div>
+    <p class="muted small" id="tadoInfo"></p>
+  </section>
+
+  <!-- ENERGÍA -->
+  <section id="tab-energia" class="tab">
+    <div class="card">
+      <div class="row between"><h3>Precio de la luz</h3><span class="muted small" id="priceSrc"></span></div>
+      <div id="priceChart" class="chart"></div>
+      <div class="legend"><span class="dot barata"></span>barata <span class="dot media"></span>media <span class="dot cara"></span>cara <span class="nowmark"></span>ahora</div>
+    </div>
+    <h2>Enchufes</h2>
+    <div id="plugs" class="list"></div>
+    <div class="card">
+      <div class="row between"><h3>Consumo últimos 14 días</h3><span class="muted small" id="histTotal"></span></div>
+      <div id="histChart" class="chart"></div>
+    </div>
+  </section>
+
+  <!-- CONSUMO DE TODA LA CASA -->
+  <section id="tab-consumo" class="tab">
+    <div class="card">
+      <h3>Consumo de toda la casa</h3>
+      <p class="muted small" id="hRange">Sube el archivo de consumo por horas de tu distribuidora (i-DE: Área Privada → Gestiones → Curvas de carga).</p>
+      <div class="row">
+        <label class="filebtn">📂 Importar archivo CSV<input type="file" id="hFile" accept=".csv,text/csv,text/plain" hidden></label>
+        <button class="ghost small" id="hClear">Borrar datos</button>
+      </div>
+      <div id="hStatus" class="muted small"></div>
+    </div>
+    <div id="hBody" class="hidden">
+      <div class="tiles" id="hTiles"></div>
+      <div class="card">
+        <div class="row between"><h3>¿Qué tarifa te sale más barata?</h3><span class="muted small" id="hCmpInfo"></span></div>
+        <div id="hCompare"></div>
+        <p class="muted small">Calculado con tu consumo real de cada hora. "Al año" extrapola el periodo importado a 365 días. Con impuestos = impuesto eléctrico (5,11 %) + IVA 21 %, sin alquiler del contador.</p>
+      </div>
+      <div class="card"><h3>Consumo por meses</h3><div id="hMonths" class="chart"></div></div>
+      <div class="card"><h3>Consumo medio a lo largo del día</h3><div id="hProfile" class="chart"></div>
+        <p class="muted small">Potencia media de cada hora. La línea discontinua es el consumo de base (lo que gasta la casa sin hacer nada).</p></div>
+      <div class="card"><h3>Reparto por tramos</h3><div id="hPeriods"></div></div>
+      <details class="card" id="hOffersBox">
+        <summary>Ofertas a comparar</summary>
+        <label>Potencia contratada (kW) <input id="hKw" type="number" step="0.1"></label>
+        <div id="hOffers"></div>
+        <div class="row"><button class="ghost small" id="hAddFija">+ Oferta precio único</button><button class="ghost small" id="hAdd3p">+ Oferta 3 tramos</button></div>
+        <button id="hSaveOffers" style="margin-top:10px">Guardar ofertas</button>
+        <p class="muted small">Precios sin impuestos: energía en €/kWh y potencia en €/kW día. El PVPC se calcula siempre aparte con los precios oficiales de Red Eléctrica.</p>
+      </details>
+    </div>
+  </section>
+
+  <!-- AJUSTES -->
+  <section id="tab-ajustes" class="tab">
+    <div class="card">
+      <h3>Tarifa de la luz</h3>
+      <label>Tipo de tarifa
+        <select id="tMode">
+          <option value="pvpc">PVPC (regulada, precio cada hora)</option>
+          <option value="2.0td">Mercado libre con 3 periodos (punta/llano/valle)</option>
+          <option value="fija">Precio único todo el día</option>
+        </select>
+      </label>
+      <div id="tFija"><label>Precio €/kWh <input id="tFixed" type="number" step="0.001"></label></div>
+      <div id="tPeriods" class="grid3">
+        <label>Punta <input id="tPunta" type="number" step="0.001"></label>
+        <label>Llano <input id="tLlano" type="number" step="0.001"></label>
+        <label>Valle <input id="tValle" type="number" step="0.001"></label>
+      </div>
+      <button id="tSave">Guardar tarifa</button>
+    </div>
+
+    <div class="card">
+      <h3>Enchufes Shelly</h3>
+      <div id="cfgPlugs" class="list"></div>
+      <button id="scanBtn" class="ghost" style="margin-top:10px">🔍 Buscar enchufes en la red</button>
+      <div id="scanRes" class="list" style="margin-top:8px"></div>
+      <details id="plugForm">
+        <summary>Añadir / editar enchufe</summary>
+        <input type="hidden" id="pId"><input type="hidden" id="pDev">
+        <label>Nombre <input id="pName" placeholder="Lavadora"></label>
+        <label>IP o nombre del enchufe <input id="pIp" placeholder="se rellena con «Buscar enchufes»" autocapitalize="off" autocorrect="off"></label>
+        <div class="grid2">
+          <label>Icono <input id="pIcon" placeholder="🧺" maxlength="4"></label>
+          <label>Duración típica de uso (h) <input id="pHours" type="number" step="0.5" value="2"></label>
+        </div>
+        <label>Modelo
+          <select id="pType">
+            <option value="switch">Con interruptor (Plug M / Plug S MTR)</option>
+            <option value="pm">Solo medidor (Plug PM Gen3)</option>
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" id="pProtect"> Pedir confirmación antes de apagar (lavadora, robot…)</label>
+        <label class="check"><input type="checkbox" id="pCycles"> Detectar cada uso y su coste (lavadora, lavavajillas, secadora…)</label>
+        <button id="pSave">Guardar enchufe</button>
+      </details>
+    </div>
+
+    <div class="card">
+      <h3>Philips Hue</h3>
+      <p class="muted small" id="hueCfg"></p>
+      <div class="row"><input id="hueIp" placeholder="IP del Bridge"><button id="hueFind" class="ghost">Buscar</button></div>
+      <p class="small">Pulsa el botón redondo del Bridge y después:</p>
+      <button id="huePair">Vincular Bridge</button>
+    </div>
+
+    <div class="card">
+      <h3>tado° X</h3>
+      <p class="muted small" id="tadoCfg"></p>
+      <div id="tadoLoginBox"></div>
+      <div class="row"><button id="tadoLogin">Vincular cuenta tado</button><button id="tadoLogout" class="ghost">Desvincular</button></div>
+    </div>
+  </section>
+</main>
+
+<nav class="tabs">
+  <div class="brand"><svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5h4v5"/></svg></div>
+  <button data-tab="inicio" class="active"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>Inicio</button>
+  <button data-tab="luces"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3z"/></svg>Luces</button>
+  <button data-tab="clima"><svg viewBox="0 0 24 24"><path d="M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0z"/><path d="M12 9v7"/></svg>Clima</button>
+  <button data-tab="energia"><svg viewBox="0 0 24 24"><path d="M13 2 4.5 13.5H12L11 22l8.5-11.5H12z"/></svg>Energía</button>
+  <button data-tab="consumo"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Consumo</button>
+  <button data-tab="ajustes"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Ajustes</button>
+</nav>
+
+<div id="toast" class="toast"></div>
+<script src="app.js?v=5"></script>
+</body>
+</html>

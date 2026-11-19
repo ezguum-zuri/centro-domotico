@@ -1,7 +1,7 @@
 // Panel del centro de control
 // Si el navegador tiene guardada la página antigua (caché), se descarga la nueva y se recarga
-if ((!document.getElementById('quickDevices') || !document.getElementById('weatherCard') || !document.getElementById('hDays')) && !sessionStorage.getItem('recargado3')) {
-  sessionStorage.setItem('recargado3', '1');
+if ((!document.getElementById('quickDevices') || !document.getElementById('weatherCard') || !document.getElementById('hDays') || !document.getElementById('phoneCard')) && !sessionStorage.getItem('recargado4')) {
+  sessionStorage.setItem('recargado4', '1');
   fetch('/', { cache: 'reload' }).catch(() => {}).finally(() => location.replace('/?v=' + Date.now()));
   throw new Error('Página antigua en caché: recargando');
 }
@@ -452,6 +452,7 @@ async function loadHistory() {
 
 // ---------------- Ajustes ----------------
 async function loadConfig() {
+  loadNet();
   const c = await api('config');
   $('#tMode').value = c.tariff.mode; $('#tFixed').value = c.tariff.fixedPrice;
   $('#tPunta').value = c.tariff.periods.punta; $('#tLlano').value = c.tariff.periods.llano; $('#tValle').value = c.tariff.periods.valle;
@@ -472,6 +473,21 @@ async function loadConfig() {
   const t = S?.tado;
   $('#tadoCfg').textContent = t?.linked ? 'Cuenta vinculada' : 'Sin vincular';
   $('#tadoLoginBox').innerHTML = t?.pending ? tadoBox(t.pending) : '';
+}
+// Código QR y dirección para abrir el panel en el iPhone
+async function loadNet() {
+  let n = null;
+  try { n = await api('net'); } catch { }
+  const local = /^(localhost|127\.|\[?::1)/.test(location.hostname);
+  // Si ya se está viendo desde otro aparato, esa dirección funciona seguro
+  const url = !local ? location.origin : (n && (n.local || n.ips[0])) || null;
+  $('#phoneOk').classList.toggle('hidden', !(navigator.standalone || matchMedia('(display-mode: standalone)').matches));
+  $('#netLocal').textContent = url || 'no disponible';
+  const others = n ? [n.local, ...n.ips].filter(u => u && u !== url) : [];
+  $('#netIps').textContent = others.length ? 'Si no abre, prueba con: ' + others.join(' · ') : '';
+  if (!url || typeof qrcode !== 'function') { $('#qrBox').innerHTML = ''; return; }
+  const qr = qrcode(0, 'M'); qr.addData(url); qr.make();
+  $('#qrBox').innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
 }
 function tModeUI() {
   const m = $('#tMode').value;

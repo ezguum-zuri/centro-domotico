@@ -10,7 +10,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.svg">
 <title>Casa · Centro de control</title>
-<link rel="stylesheet" href="style.css?v=9">
+<link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
 <header class="top">
@@ -113,6 +113,23 @@
 
   <!-- AJUSTES -->
   <section id="tab-ajustes" class="tab">
+    <div class="card" id="phoneCard">
+      <h3>Abrir en el iPhone</h3>
+      <div class="phone-wrap">
+        <div id="qrBox" class="qr"></div>
+        <div>
+          <div id="phoneOk" class="pill run hidden" style="display:inline-block;margin-bottom:8px">✅ Ya la estás usando como app</div>
+          <ol class="steps">
+            <li>Con el iPhone en la <b>Wi-Fi de casa</b>, abre la <b>Cámara</b> y apunta a este código.</li>
+            <li>Toca el aviso que sale para abrirlo en <b>Safari</b>.</li>
+            <li>Toca <b>Compartir</b> (el cuadrado con la flecha) → <b>«Añadir a pantalla de inicio»</b> → <b>Añadir</b>.</li>
+          </ol>
+          <div class="muted small">Dirección: <b id="netLocal" class="sel">—</b></div>
+          <div class="muted small" id="netIps"></div>
+        </div>
+      </div>
+    </div>
+
     <div class="card">
       <h3>Tiempo fuera de casa</h3>
       <p class="muted small" id="wCfg"></p>
@@ -192,6 +209,7 @@
 </nav>
 
 <div id="toast" class="toast"></div>
-<script src="app.js?v=9"></script>
+<script src="qrcode.js?v=1"></script>
+<script src="app.js?v=10"></script>
 </body>
 </html>

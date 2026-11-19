@@ -192,3 +192,12 @@ details summary{cursor:pointer;color:var(--accent);font-weight:600;margin:10px 0
 .days th{position:sticky;top:0;background:var(--card);color:var(--muted);font-weight:500;font-size:12px}
 .days td:first-child::first-letter{text-transform:uppercase}
 .days tr.today td{color:var(--accent)}
+
+/* ---------- Abrir en el iPhone (Ajustes) ---------- */
+.phone-wrap{display:grid;grid-template-columns:150px 1fr;gap:18px;align-items:center}
+@media(max-width:520px){.phone-wrap{grid-template-columns:1fr}.qr{max-width:180px;margin:0 auto}}
+.qr{background:#fff;border-radius:14px;padding:8px;aspect-ratio:1;box-shadow:0 0 0 1px rgba(56,189,248,.25),0 8px 24px -8px rgba(56,189,248,.35)}
+.qr svg{width:100%;height:100%}
+.steps{margin:0 0 10px;padding-left:20px;font-size:13.5px;line-height:1.55}
+.steps li{margin:2px 0}
+.sel{user-select:all;-webkit-user-select:all;color:var(--accent);word-break:break-all}

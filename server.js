@@ -13,6 +13,19 @@ const house = require('./lib/house');
 const weather = require('./lib/weather');
 
 const PUB = path.join(__dirname, 'public');
+
+// Direcciones para abrir el panel desde el móvil. El nombre ".local" no cambia aunque el router cambie la IP.
+function netInfo() {
+  const port = config.get().port;
+  let host = '';
+  if (process.platform === 'darwin') {
+    try { host = require('child_process').execSync('scutil --get LocalHostName', { timeout: 2000 }).toString().trim(); } catch { }
+  }
+  if (!host) host = require('os').hostname().replace(/\.local$/i, '');
+  const ips = Object.values(require('os').networkInterfaces()).flat()
+    .filter(n => n && n.family === 'IPv4' && !n.internal && !/^169\.254\./.test(n.address)).map(n => n.address);
+  return { port, local: /^[a-z0-9-]+$/i.test(host) ? `http://${host}.local:${port}` : null, ips: ips.map(ip => `http://${ip}:${port}`) };
+}
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png' };
 
 function send(res, code, obj) {
@@ -91,6 +104,7 @@ async function fullState() {
 
 const routes = {
   'GET /api/state': async () => fullState(),
+  'GET /api/net': async () => netInfo(),
   'GET /api/history': async (q) => plugs.history(Number(q.get('days')) || 14),
   'GET /api/cycles': async (q) => plugs.cyclesOf(q.get('id')),
   'GET /api/config': async () => { const c = config.get(); return { tariff: c.tariff, plugs: c.plugs, tado: c.tado, hue: { ip: c.hue.ip, paired: !!c.hue.username }, house: c.house, offers: c.offers, weather: c.weather || {} }; },
@@ -196,5 +210,6 @@ server.listen(config.get().port, '0.0.0.0', () => {
   console.log(`\n🏠 Centro de control en marcha${config.get().demo ? ' (MODO DEMO)' : ''}`);
   console.log(`   En este equipo:  http://localhost:${config.get().port}`);
   for (const ip of ips) console.log(`   Desde el móvil:  http://${ip}:${config.get().port}`);
+  const n = netInfo(); if (n.local) console.log(`   Nombre fijo:     ${n.local}`);
   console.log('');
 });

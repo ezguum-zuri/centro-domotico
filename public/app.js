@@ -1,7 +1,7 @@
 // Panel del centro de control
 // Si el navegador tiene guardada la página antigua (caché), se descarga la nueva y se recarga
-if ((!document.getElementById('quickDevices') || !document.getElementById('weatherCard')) && !sessionStorage.getItem('recargado2')) {
-  sessionStorage.setItem('recargado2', '1');
+if ((!document.getElementById('quickDevices') || !document.getElementById('weatherCard') || !document.getElementById('hDays')) && !sessionStorage.getItem('recargado3')) {
+  sessionStorage.setItem('recargado3', '1');
   fetch('/', { cache: 'reload' }).catch(() => {}).finally(() => location.replace('/?v=' + Date.now()));
   throw new Error('Página antigua en caché: recargando');
 }
@@ -15,6 +15,8 @@ const hh = h => String(h).padStart(2, '0') + ':00';
 const num = (v, d = 1) => v == null ? '—' : Number(v).toLocaleString('es-ES', { maximumFractionDigits: d });
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const ICON_BULB = '<svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3z"/></svg>';
+const ICON_CHEV = '<svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>';
+const dm = d => d.slice(8) + '/' + d.slice(5, 7);
 
 // Icono automático según el nombre (el mismo criterio que el servidor)
 const AUTO_ICONS = [
@@ -68,7 +70,7 @@ document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
   document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('active', x === b));
   document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x.id === 'tab-' + tab));
   if (tab === 'ajustes') { $('#scanRes').innerHTML = ''; $('#wRes').innerHTML = ''; loadConfig(); } // la búsqueda de enchufes se limpia al volver
-  if (tab === 'energia') loadHistory();
+  if (tab === 'energia') { loadHistory(); if (openPlug) loadPlugDays(true); }
   if (tab === 'consumo') loadHouse();
   render();
   scrollTo(0, 0);
@@ -314,17 +316,30 @@ function renderClima() {
 
 // ---------------- Energía ----------------
 function renderEnergia() {
+  if (openPlug) loadPlugDays(false);
   $('#priceSrc').textContent = S.prices.source ? 'Fuente: ' + S.prices.source : '';
   priceChart();
+  // Se guarda el desplazamiento de la tabla de días para no perderlo al repintar cada 5 s
+  const keep = $('#plugs .days-wrap')?.scrollTop || 0;
   $('#plugs').innerHTML = S.plugs.length ? S.plugs.map(p => {
     const st = !p.online ? '<span class="pill off">Sin conexión</span>' : p.running ? '<span class="pill run">En marcha</span>' : '';
     const last = p.lastCycle ? `Último uso: ${new Date(p.lastCycle.start).toLocaleString('es-ES', { weekday: 'short', hour: '2-digit', minute: '2-digit' })}, ${Math.round((p.lastCycle.end - p.lastCycle.start) / 60000)} min, ${kwh(p.lastCycle.kWh)}, ${eur(p.lastCycle.cost)}` : '';
-    return `<div class="item"><div class="ico">${esc(p.icon)}</div><div class="main">
+    const open = openPlug === p.id;
+    return `<div class="plug${open ? ' open' : ''}"><div class="item clickable"><div class="ico">${esc(p.icon)}</div><div class="main" data-open="${p.id}">
       <div class="row" style="gap:6px"><span class="title">${esc(p.name)}</span>${st}</div>
       <div class="sub">${p.online ? '<b>' + watts(p.power) + '</b> · ' : ''}Hoy ${kwh(p.today.kWh)} (${eur(p.today.cost)}) · Mes ${kwh(p.month.kWh)} (${eur(p.month.cost)})</div>
       ${last ? `<div class="sub">${last}</div>` : ''}${p.error ? `<div class="sub">${esc(p.error)}</div>` : ''}</div>
-      ${p.type !== 'pm' && p.online ? `<label class="switch"><input type="checkbox" ${p.on ? 'checked' : ''} data-plug="${p.id}" data-protect="${p.protect}"><span></span></label>` : ''}</div>`;
+      <button class="chev" data-open="${p.id}" aria-label="${open ? 'Ocultar' : 'Ver'} consumo por días" title="${open ? 'Ocultar' : 'Ver'} consumo por días">${ICON_CHEV}</button>
+      ${p.type !== 'pm' && p.online ? `<label class="switch"><input type="checkbox" ${p.on ? 'checked' : ''} data-plug="${p.id}" data-protect="${p.protect}"><span></span></label>` : ''}</div>
+      ${open ? `<div class="plugdetail">${plugDaysHTML(p)}</div>` : ''}</div>`;
   }).join('') : '<div class="muted small">Aún no hay enchufes. Añádelos en Ajustes.</div>';
+  const dw = $('#plugs .days-wrap'); if (dw) dw.scrollTop = keep;
+  bind('#plugs [data-open]', 'click', e => {
+    const id = e.currentTarget.dataset.open;
+    openPlug = openPlug === id ? null : id;
+    if (openPlug) loadPlugDays(true);
+    renderEnergia();
+  });
   bind('[data-plug]', 'change', e => {
     const el = e.target;
     if (!el.checked && el.dataset.protect === 'true') {
@@ -333,6 +348,70 @@ function renderEnergia() {
     }
     act('plug', { id: el.dataset.plug, on: el.checked });
   });
+}
+
+// ---------- Consumo por días de cada enchufe (últimos 30 días) ----------
+let openPlug = null, H30 = null, H30at = 0, H30busy = false, H30err = null;
+async function loadPlugDays(force) {
+  if (H30busy || (!force && Date.now() - H30at < 60e3)) return;
+  H30busy = true;
+  try { H30 = await api('history?days=30'); H30err = null; }
+  catch (e) { H30err = e.message; }
+  H30at = Date.now(); H30busy = false;
+  if (S) renderEnergia();
+}
+
+// Gráfico de barras por días con línea de media. items: [{label, value, title, dim}]
+function barsSVG(items, opts = {}) {
+  // Se dibuja al ancho real del recuadro para que no se agrande en pantallas grandes
+  const n = items.length, W = Math.max(280, Math.round(opts.w || n * 18)), H = 170, top = 16, bot = 22, ch = H - top - bot;
+  const every = opts.every || Math.max(1, Math.ceil(n / Math.max(4, Math.floor(W / 62))));
+  const max = Math.max(0.0001, ...items.map(i => i.value)) * 1.12, bw = W / n;
+  const vals = items.filter(i => !i.dim).map(i => i.value);
+  const avg = opts.avg != null ? opts.avg : vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  const gid = opts.id || 'gBars';
+  let g = `<defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${css('--accent')}"/><stop offset="1" stop-color="${css('--accent2')}"/></linearGradient></defs>`;
+  for (const f of [0.25, 0.5, 0.75, 1]) g += `<line x1="0" x2="${W}" y1="${top + ch - f / 1.12 * ch}" y2="${top + ch - f / 1.12 * ch}" stroke="rgba(255,255,255,.05)"/>`;
+  g += items.map((it, i) => {
+    const bh = Math.max(it.value > 0 ? 1.5 : 0, it.value / max * ch), x = i * bw;
+    return `<rect x="${x + 2}" y="${top + ch - bh}" width="${bw - 4}" height="${bh}" rx="3" fill="url(#${gid})" opacity="${it.dim ? .35 : 1}"><title>${esc(it.title)}</title></rect>` +
+      ((i % every === 0 && (n - 1 - i >= Math.max(2, every / 2) || i === n - 1)) || i === n - 1
+        ? `<text x="${i === 0 ? x + 2 : i === n - 1 ? x + bw - 2 : x + bw / 2}" y="${H - 6}" font-size="10" text-anchor="${i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'}" fill="${css('--muted')}">${esc(it.label)}</text>` : '');
+  }).join('');
+  if (avg != null) {
+    const y = top + ch - avg / max * ch;
+    g += `<line x1="0" x2="${W}" y1="${y}" y2="${y}" stroke="${css('--on')}" stroke-width="1.5" stroke-dasharray="5 4"/>
+      <text x="${W - 4}" y="${y - 5}" font-size="10.5" font-weight="600" text-anchor="end" fill="${css('--on')}" paint-order="stroke" stroke="${css('--card')}" stroke-width="3">media ${opts.fmt ? opts.fmt(avg) : avg.toFixed(2)}</text>`;
+  }
+  return `<svg width="100%" viewBox="0 0 ${W} ${H}">${g}</svg>`;
+}
+const stats4 = list => `<div class="stats stats4">${list.map(([v, l]) => `<div><b>${v}</b><span>${l}</span></div>`).join('')}</div>`;
+const dayName = d => new Date(d + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
+
+function plugDaysHTML(p) {
+  if (!H30) return `<div class="muted small">${H30err ? '⚠️ ' + esc(H30err) : 'Cargando…'}</div>`;
+  const today = H30[H30.length - 1].day;
+  const rows = H30.map(r => ({ day: r.day, ...(r.plugs[p.id] || { kWh: 0, cost: 0 }) }));
+  const first = rows.findIndex(r => r.kWh > 0);
+  const used = first < 0 ? [] : rows.slice(first);
+  if (!used.length) return '<div class="muted small">Todavía no hay consumo guardado de este enchufe.</div>';
+  const full = used.filter(r => r.day !== today && r !== used[0]);   // días completos (sin el primero ni hoy)
+  const ref = full.length ? full : used;
+  const avgK = ref.reduce((a, b) => a + b.kWh, 0) / ref.length, avgC = ref.reduce((a, b) => a + b.cost, 0) / ref.length;
+  const tot = used.reduce((a, b) => ({ k: a.k + b.kWh, c: a.c + b.cost }), { k: 0, c: 0 });
+  const items = used.map(r => ({ label: dm(r.day), value: r.kWh, dim: r.day === today || r === used[0], title: `${dm(r.day)}: ${kwh(r.kWh)} · ${eur(r.cost)}` }));
+  return `<div class="ph">Consumo por días · últimos 30 días</div>
+    ${stats4([
+      [kwh(avgK), 'Media al día' + (full.length ? '' : ' (aprox.)')],
+      [eur(avgC), 'Coste medio al día'],
+      [eur(avgC * 365, 0), 'Estimado al año'],
+      [kwh(tot.k), `Total ${used.length} días · ${eur(tot.c)}`]
+    ])}
+    <div class="chart" style="margin-top:12px">${barsSVG(items, { fmt: v => kwh(v), avg: avgK, id: 'gPlug', w: ($('#plugs')?.clientWidth || 360) - 38 })}</div>
+    <p class="muted small">Las barras más apagadas son días incompletos (hoy y el primer día medido), que no cuentan para la media.</p>
+    <div class="days-wrap"><table class="days"><thead><tr><th>Día</th><th>Consumo</th><th>Coste</th></tr></thead><tbody>
+    ${used.slice().reverse().map(r => `<tr class="${r.day === today ? 'today' : ''}"><td>${dayName(r.day)}${r.day === today ? ' <span class="pill run">hoy</span>' : ''}</td><td>${kwh(r.kWh)}</td><td>${eur(r.cost)}</td></tr>`).join('')}
+    </tbody></table></div>`;
 }
 
 function priceChart() {
@@ -514,6 +593,9 @@ function renderHouse() {
       <td>${eur(r.perYearTax, 0)}${r !== cheapest ? `<div class="muted small">+${eur(r.perYearTax - cheapest.perYearTax, 0)}</div>` : '<div class="muted small">la mejor</div>'}</td></tr>`).join('')}
   </table>`;
 
+  // Consumo por días (último mes), con el coste a la tarifa actual
+  renderHouseDays();
+
   // Meses
   const ms = H.months, W = Math.max(ms.length * 46, 320), Hh = 170, top = 18, bot = 22, ch = Hh - top - bot;
   const mx = Math.max(...ms.map(m => m.kWh)) * 1.12;
@@ -541,6 +623,30 @@ function renderHouse() {
   const seg = (v, c, l) => `<div style="width:${v / tot * 100}%;background:${c}">${Math.round(v / tot * 100)}%</div>`;
   $('#hPeriods').innerHTML = `<div class="bar">${seg(bp.P1, css('--bad'), 'Punta')}${seg(bp.P2, css('--mid'), 'Llano')}${seg(bp.P3, css('--good'), 'Valle')}</div>
     <div class="legend"><span class="dot cara"></span>Punta ${kwh(bp.P1)} <span class="dot media"></span>Llano ${kwh(bp.P2)} <span class="dot barata"></span>Valle ${kwh(bp.P3)}</div>`;
+}
+
+function renderHouseDays() {
+  const box = $('#hDays'); if (!box) return;
+  const dd = H.daily || [];
+  if (!dd.length) { box.innerHTML = '<div class="muted small">Sin datos por días.</div>'; $('#hDaysStats').innerHTML = ''; $('#hDaysInfo').textContent = ''; return; }
+  // El primer y el último día del archivo pueden estar a medias: no cuentan para la media
+  const partial = i => dd.length > 2 && (i === 0 || i === dd.length - 1);
+  const ref = dd.filter((r, i) => !partial(i));
+  const priced = arr => arr.every(r => r.cost != null);
+  const avgK = ref.reduce((a, b) => a + b.kWh, 0) / ref.length;
+  const avgC = priced(ref) ? ref.reduce((a, b) => a + b.cost, 0) / ref.length : null;
+  const tk = dd.reduce((a, b) => a + b.kWh, 0), tc = priced(dd) ? dd.reduce((a, b) => a + b.cost, 0) : null;
+  const items = dd.map((r, i) => ({ label: dm(r.d), value: r.kWh, dim: partial(i), title: `${dayName(r.d)}: ${kwh(r.kWh)}${r.cost != null ? ' · ' + eur(r.cost) : ''}` }));
+  box.innerHTML = barsSVG(items, { fmt: v => kwh(v), avg: avgK, id: 'gHouse', w: box.clientWidth || 560 });
+  $('#hDaysStats').innerHTML = stats4([
+    [kwh(avgK), 'Media al día'],
+    [eur(avgC), 'Coste medio al día'],
+    [eur(avgC != null ? avgC * 365 : null, 0), 'Estimado al año'],
+    [kwh(tk), `Total ${dd.length} días${tc != null ? ' · ' + eur(tc) : ''}`]
+  ]);
+  const modo = { fija: 'precio único', '2.0td': 'punta/llano/valle', pvpc: 'PVPC real de cada hora' }[H.tariffMode] || 'tu tarifa';
+  $('#hDaysInfo').textContent = tc != null ? `Coste con tu tarifa actual (${modo}), solo energía, sin potencia ni impuestos · hasta ${fmtDate(dd[dd.length - 1].d)}`
+    : `Hasta ${fmtDate(dd[dd.length - 1].d)}${H.status?.loading ? ' · calculando costes…' : ''}`;
 }
 
 $('#hFile').onchange = async e => {

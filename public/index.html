@@ -10,7 +10,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.svg">
 <title>Casa · Centro de control</title>
-<link rel="stylesheet" href="style.css?v=8">
+<link rel="stylesheet" href="style.css?v=9">
 </head>
 <body>
 <header class="top">
@@ -63,7 +63,7 @@
       <div id="priceChart" class="chart"></div>
       <div class="legend"><span class="dot barata"></span>barata <span class="dot media"></span>media <span class="dot cara"></span>cara <span class="nowmark"></span>ahora</div>
     </div>
-    <h2>Enchufes</h2>
+    <h2>Enchufes <span class="h2hint">· toca uno para ver su consumo por días</span></h2>
     <div id="plugs" class="list"></div>
     <div class="card">
       <div class="row between"><h3>Consumo últimos 14 días</h3><span class="muted small" id="histTotal"></span></div>
@@ -88,6 +88,13 @@
         <div class="row between"><h3>¿Qué tarifa te sale más barata?</h3><span class="muted small" id="hCmpInfo"></span></div>
         <div id="hCompare"></div>
         <p class="muted small">Calculado con tu consumo real de cada hora. "Al año" extrapola el periodo importado a 365 días. Con impuestos = impuesto eléctrico (5,11 %) + IVA 21 %, sin alquiler del contador.</p>
+      </div>
+      <div class="card">
+        <h3>Consumo por días (último mes)</h3>
+        <p class="muted small" id="hDaysInfo" style="margin:-4px 0 12px"></p>
+        <div id="hDaysStats"></div>
+        <div id="hDays" class="chart"></div>
+        <p class="muted small">El primer y el último día del archivo suelen estar incompletos: salen más apagados y no cuentan para la media.</p>
       </div>
       <div class="card"><h3>Consumo por meses</h3><div id="hMonths" class="chart"></div></div>
       <div class="card"><h3>Consumo medio a lo largo del día</h3><div id="hProfile" class="chart"></div>
@@ -185,6 +192,6 @@
 </nav>
 
 <div id="toast" class="toast"></div>
-<script src="app.js?v=8"></script>
+<script src="app.js?v=9"></script>
 </body>
 </html>

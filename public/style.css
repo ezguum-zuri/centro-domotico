@@ -169,3 +169,26 @@ details summary{cursor:pointer;color:var(--accent);font-weight:600;margin:10px 0
 .wx-days b{color:var(--text);font-variant-numeric:tabular-nums}
 .wx-days .r{color:var(--accent);font-size:11px}
 @media(min-width:760px) and (max-width:1099px){.p-weather .wx-wrap{display:grid;grid-template-columns:1fr 1.4fr;gap:16px;align-items:center}.p-weather .wx-days{margin-top:0}}
+
+/* ---------- Consumo por días (enchufes y casa) ---------- */
+.h2hint{text-transform:none;letter-spacing:0;font-weight:500;opacity:.8}
+.stats4{grid-template-columns:repeat(2,1fr);margin-top:0}
+@media(min-width:620px){.stats4{grid-template-columns:repeat(4,1fr)}}
+#hDaysStats .stats4{margin-bottom:12px}
+.plug{display:flex;flex-direction:column}
+.item.clickable .main{cursor:pointer}
+.chev{width:36px;height:36px;padding:0;border-radius:11px;display:grid;place-items:center;flex:none;background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--muted)}
+.chev:hover{border-color:var(--accent);color:var(--accent)}
+.chev svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}
+.plug.open .item{border-color:rgba(56,189,248,.45);border-bottom-left-radius:0;border-bottom-right-radius:0;background:linear-gradient(160deg,rgba(56,189,248,.14),rgba(59,130,246,.05)),linear-gradient(180deg,var(--card2),var(--card))}
+.plug.open .chev{color:var(--accent);border-color:rgba(56,189,248,.45)}
+.plug.open .chev svg{transform:rotate(180deg)}
+.plugdetail{background:linear-gradient(180deg,var(--card),var(--bg2));border:1px solid rgba(56,189,248,.45);border-top:0;border-radius:0 0 var(--radius) var(--radius);padding:16px 18px 14px;box-shadow:var(--glow);animation:fade .25s ease}
+.days-wrap{max-height:320px;overflow-y:auto;margin-top:6px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.02)}
+.days{width:100%;border-collapse:collapse;font-size:13.5px}
+.days th,.days td{padding:7px 12px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+.days tr:last-child td{border-bottom:0}
+.days th:first-child,.days td:first-child{text-align:left}
+.days th{position:sticky;top:0;background:var(--card);color:var(--muted);font-weight:500;font-size:12px}
+.days td:first-child::first-letter{text-transform:uppercase}
+.days tr.today td{color:var(--accent)}

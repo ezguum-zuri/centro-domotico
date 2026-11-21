@@ -252,7 +252,7 @@ function renderInicio() {
 
   // Consumo
   $('#powerCard').innerHTML = `<div class="ph">Consumo de los enchufes</div>${gauge(s.powerNow)}
-    <div class="stats"><div><b>${kwh(s.kWhToday)}</b><span>Hoy</span></div><div><b>${eur(s.costToday)}</b><span>Coste hoy</span></div><div><b>${eur(s.costMonth)}</b><span>Este mes</span></div></div>`;
+    <div class="stats stats4"><div><b>${kwh(s.kWhToday)}</b><span>Hoy</span></div><div><b>${eur(s.costToday)}</b><span>Coste hoy</span></div><div><b>${eur(s.costWeek)}</b><span>Esta semana</span></div><div><b>${eur(s.costMonth)}</b><span>Este mes</span></div></div>`;
 
   // Recomendaciones / ranking
   if (fixed) {
@@ -262,7 +262,7 @@ function renderInicio() {
     $('#recs').innerHTML = list.length ? list.map((p, i) => `<div class="item"><div class="ico">${esc(p.icon)}</div><div class="main">
       <div class="row between"><span class="title">${i + 1}. ${esc(p.name)}</span><b>${eur(p.month.cost)}</b></div>
       <div style="height:6px;border-radius:4px;background:rgba(255,255,255,.06);margin:6px 0"><div style="height:6px;border-radius:4px;width:${p.month.kWh / max * 100}%;background:linear-gradient(90deg,var(--accent2),var(--accent))"></div></div>
-      <div class="sub">${kwh(p.month.kWh)} este mes · hoy ${kwh(p.today.kWh)}${p.online && p.power != null ? ' · ahora ' + watts(p.power) : ''}${p.lastCycle ? ` · último uso ${eur(p.lastCycle.cost)}` : ''}</div></div></div>`).join('')
+      <div class="sub">${kwh(p.month.kWh)} este mes · hoy ${kwh(p.today.kWh)}${p.online && p.power != null ? ' · ahora ' + watts(p.power) : ''}</div>${useLine(p) ? `<div class="sub">${useLine(p)}</div>` : ''}</div></div>`).join('')
       : `<div class="muted small">Añade enchufes en Ajustes para ver qué gasta más.</div>`;
   } else {
     $('#recsTitle').textContent = 'Cuándo usar cada aparato';
@@ -315,6 +315,20 @@ function renderClima() {
 }
 
 // ---------------- Energía ----------------
+// Coste por uso: media por ciclo (lavadora…) o coste de una hora de uso (aire, proyector…)
+function useLine(p) {
+  const out = [];
+  if (p.detectCycles && p.avgCycleCost != null && p.cycleCount) {
+    out.push(`Cada uso te cuesta <b>~${eur(p.avgCycleCost)}</b> de media (${kwh(p.avgCycleKWh)}, ${p.cycleCount >= 10 ? 'últimos 10 usos' : p.cycleCount + (p.cycleCount === 1 ? ' uso' : ' usos')})`);
+  } else if (p.perHour && p.perHour.alwaysOn) {
+    out.push(`Funciona todo el día: te cuesta <b>~${eur(p.perHour.perDay)}</b> al día`);
+  } else if (p.perHour) {
+    out.push(`Una hora de uso te cuesta <b>~${eur(p.perHour.cost)}</b> (${kwh(p.perHour.kWh)}/h de media)`);
+  }
+  if (p.costNowPerHour != null && (!p.detectCycles || p.running)) out.push(`ahora mismo ${eur(p.costNowPerHour)}/h`);
+  return out.join(' · ');
+}
+
 function renderEnergia() {
   if (openPlug) loadPlugDays(false);
   $('#priceSrc').textContent = S.prices.source ? 'Fuente: ' + S.prices.source : '';
@@ -327,8 +341,8 @@ function renderEnergia() {
     const open = openPlug === p.id;
     return `<div class="plug${open ? ' open' : ''}"><div class="item clickable"><div class="ico">${esc(p.icon)}</div><div class="main" data-open="${p.id}">
       <div class="row" style="gap:6px"><span class="title">${esc(p.name)}</span>${st}</div>
-      <div class="sub">${p.online ? '<b>' + watts(p.power) + '</b> · ' : ''}Hoy ${kwh(p.today.kWh)} (${eur(p.today.cost)}) · Mes ${kwh(p.month.kWh)} (${eur(p.month.cost)})</div>
-      ${last ? `<div class="sub">${last}</div>` : ''}${p.error ? `<div class="sub">${esc(p.error)}</div>` : ''}</div>
+      <div class="sub">${p.online ? '<b>' + watts(p.power) + '</b> · ' : ''}Hoy ${kwh(p.today.kWh)} (${eur(p.today.cost)}) · Semana ${kwh(p.week.kWh)} (${eur(p.week.cost)}) · Mes ${kwh(p.month.kWh)} (${eur(p.month.cost)})</div>
+      ${useLine(p) ? `<div class="sub">${useLine(p)}</div>` : ''}${last ? `<div class="sub">${last}</div>` : ''}${p.error ? `<div class="sub">${esc(p.error)}</div>` : ''}</div>
       <button class="chev" data-open="${p.id}" aria-label="${open ? 'Ocultar' : 'Ver'} consumo por días" title="${open ? 'Ocultar' : 'Ver'} consumo por días">${ICON_CHEV}</button>
       ${p.type !== 'pm' && p.online ? `<label class="switch"><input type="checkbox" ${p.on ? 'checked' : ''} data-plug="${p.id}" data-protect="${p.protect}"><span></span></label>` : ''}</div>
       ${open ? `<div class="plugdetail">${plugDaysHTML(p)}</div>` : ''}</div>`;
@@ -388,6 +402,16 @@ function barsSVG(items, opts = {}) {
 const stats4 = list => `<div class="stats stats4">${list.map(([v, l]) => `<div><b>${v}</b><span>${l}</span></div>`).join('')}</div>`;
 const dayName = d => new Date(d + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
 
+// Casillas de coste por uso (debajo de las de consumo por días)
+function useTiles(p) {
+  const t = [];
+  if (p.detectCycles && p.avgCycleCost != null && p.cycleCount) t.push([eur(p.avgCycleCost), `Cada uso, de media (${p.cycleCount >= 10 ? 'últimos 10' : p.cycleCount + (p.cycleCount === 1 ? ' uso' : ' usos')})`]);
+  else if (p.perHour && !p.perHour.alwaysOn) t.push([eur(p.perHour.cost), `Una hora de uso, de media (${kwh(p.perHour.kWh)}/h)`]);
+  if (p.costNowPerHour != null && (!p.detectCycles || p.running)) t.push([eur(p.costNowPerHour), `Por hora, al ritmo de ahora (${watts(p.power)})`]);
+  if (!t.length) return '';
+  return `<div class="stats stats4" style="margin-top:8px;grid-template-columns:repeat(${t.length},1fr)">${t.map(([v, l]) => `<div><b>${v}</b><span>${l}</span></div>`).join('')}</div>`;
+}
+
 function plugDaysHTML(p) {
   if (!H30) return `<div class="muted small">${H30err ? '⚠️ ' + esc(H30err) : 'Cargando…'}</div>`;
   const today = H30[H30.length - 1].day;
@@ -407,6 +431,7 @@ function plugDaysHTML(p) {
       [eur(avgC * 365, 0), 'Estimado al año'],
       [kwh(tot.k), `Total ${used.length} días · ${eur(tot.c)}`]
     ])}
+    ${useTiles(p)}
     <div class="chart" style="margin-top:12px">${barsSVG(items, { fmt: v => kwh(v), avg: avgK, id: 'gPlug', w: ($('#plugs')?.clientWidth || 360) - 38 })}</div>
     <p class="muted small">Las barras más apagadas son días incompletos (hoy y el primer día medido), que no cuentan para la media.</p>
     <div class="days-wrap"><table class="days"><thead><tr><th>Día</th><th>Consumo</th><th>Coste</th></tr></thead><tbody>

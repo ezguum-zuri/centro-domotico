@@ -97,6 +97,7 @@ async function fullState() {
       powerNow: p.reduce((a, b) => a + (b.power || 0), 0),
       kWhToday: p.reduce((a, b) => a + b.today.kWh, 0),
       costToday: p.reduce((a, b) => a + b.today.cost, 0),
+      costWeek: p.reduce((a, b) => a + b.week.cost, 0),
       costMonth: p.reduce((a, b) => a + b.month.cost, 0)
     }
   };
